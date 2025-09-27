@@ -2,23 +2,31 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { ChevronDown, ArrowDown, RefreshCw, Zap, ExternalLink } from "lucide-react"
-import { useState } from "react"
+import { ArrowDown, RefreshCw, Zap, ExternalLink } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
 import { useBridge } from "@/hooks/useBridge"
 import { useAccount, useConnect, useDisconnect } from "wagmi"
+import { ethers } from "ethers"
+
+// Minting configuration
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://1rpc.io/sepolia"
+const RELAYER_PRIVATE_KEY =
+  process.env.RELAYER_PRIVATE_KEY || "c8316c9978a2218ed87caa2a5d4e984f14944fecc242ded779a6a5f337eefd2b"
+const WRBTC_SEPOLIA_ADDRESS = "0x25d6d8758FaB9Ae4310b2b826535486e85990788"
+
+// Minimal ABI for mint function
+const WRBTC_ABI = ["function mint(address to, uint256 amount) external"]
 
 export function BridgeCard({ className }: { className?: string }) {
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
-  
+
   const {
     isLoading,
     isConfirmed,
     txHash,
-    mintTxHash,
     error,
     isOnRootstock,
     isOnSepolia,
@@ -33,10 +41,58 @@ export function BridgeCard({ className }: { className?: string }) {
   const [fromAmount, setFromAmount] = useState("")
   const [toAmount, setToAmount] = useState("")
 
+  // Automatic minting states (hidden from user)
+  const [autoMintTxHash, setAutoMintTxHash] = useState<string | null>(null)
+  const [autoMintLoading, setAutoMintLoading] = useState(false)
+  const [autoMintError, setAutoMintError] = useState<string | null>(null)
+
+  // Track when bridge is confirmed to trigger auto-minting
+  const [bridgeAmount, setBridgeAmount] = useState<string>("")
+  const [shouldAutoMint, setShouldAutoMint] = useState(false)
+
+  // Automatic minting functionality (called after successful bridge)
+  const handleAutoMint = useCallback(async (recipientAddress: string, mintAmount: string) => {
+    setAutoMintLoading(true)
+    setAutoMintError(null)
+    setAutoMintTxHash(null)
+
+    try {
+      const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL)
+      const wallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider)
+      const contract = new ethers.Contract(WRBTC_SEPOLIA_ADDRESS, WRBTC_ABI, wallet)
+
+      // Convert amount to wei (assuming wRBTC has 18 decimals)
+      const amountWei = ethers.parseEther(mintAmount)
+
+      const tx = await contract.mint(recipientAddress, amountWei)
+      console.log("Auto-mint transaction sent:", tx.hash)
+      setAutoMintTxHash(tx.hash)
+
+      await tx.wait()
+      console.log("Auto-mint transaction confirmed")
+    } catch (err: unknown) {
+      console.error("Auto-mint failed", err)
+      setAutoMintError(err instanceof Error ? err.message : "Auto-mint failed")
+    } finally {
+      setAutoMintLoading(false)
+    }
+  }, [])
+
+  // Effect to trigger auto-minting when bridge is confirmed
+  useEffect(() => {
+    if (shouldAutoMint && isConfirmed && address && bridgeAmount) {
+      console.log("Bridge confirmed, starting automatic minting...")
+      handleAutoMint(address, bridgeAmount)
+      setShouldAutoMint(false) // Reset flag
+    }
+  }, [isConfirmed, shouldAutoMint, address, bridgeAmount, handleAutoMint])
+
   const handleBridge = async () => {
     if (!fromAmount || !address) return
 
     if (isOnRootstock) {
+      setBridgeAmount(fromAmount)
+      setShouldAutoMint(true)
       await bridgeFromRootstock(fromAmount)
     } else if (isOnSepolia) {
       await bridgeFromSepolia(fromAmount)
@@ -44,7 +100,7 @@ export function BridgeCard({ className }: { className?: string }) {
   }
 
   const handleMaxAmount = () => {
-    setFromAmount(parseFloat(availableBalance).toFixed(6))
+    setFromAmount(Number.parseFloat(availableBalance).toFixed(6))
   }
 
   const handleConnect = () => {
@@ -84,9 +140,7 @@ export function BridgeCard({ className }: { className?: string }) {
       >
         <div className="p-8 text-center">
           <h2 className="text-xl font-semibold mb-4">Wrong Network</h2>
-          <p className="text-muted-foreground mb-6">
-            Please switch to Rootstock Testnet or Sepolia to use the bridge
-          </p>
+          <p className="text-muted-foreground mb-6">Please switch to Rootstock Testnet or Sepolia to use the bridge</p>
           <Button onClick={() => disconnect()} variant="outline">
             Disconnect
           </Button>
@@ -109,26 +163,21 @@ export function BridgeCard({ className }: { className?: string }) {
             <span className="text-sm text-muted-foreground">
               {networkName} → {targetNetwork}
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => disconnect()}
-              className="p-2 hover:bg-secondary/20"
-            >
+            <Button variant="ghost" size="sm" onClick={() => disconnect()} className="p-2 hover:bg-secondary/20">
               <RefreshCw className="size-4" />
             </Button>
           </div>
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+        <div className="bg-secondary/10 rounded-lg p-4 mb-4 ring-1 ring-inset ring-border">
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-gray-600">Available Balance:</span>
+            <span className="text-muted-foreground">Available Balance:</span>
             <span className="font-medium">
-              {parseFloat(availableBalance).toFixed(6)} {tokenSymbol}
+              {Number.parseFloat(availableBalance).toFixed(6)} {tokenSymbol}
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Network:</span>
+            <span className="text-muted-foreground">Network:</span>
             <span className="font-medium">{networkName}</span>
           </div>
         </div>
@@ -149,10 +198,7 @@ export function BridgeCard({ className }: { className?: string }) {
             <div className="w-[120px] px-3 py-2 bg-secondary/30 border border-secondary rounded-lg text-sm">
               {tokenSymbol}
             </div>
-            <Button
-              onClick={handleMaxAmount}
-              className="w-[120px] text-xs bg-gray-200 hover:bg-gray-300 text-gray-700"
-            >
+            <Button onClick={handleMaxAmount} variant="secondary" className="w-[120px] text-xs">
               MAX
             </Button>
           </div>
@@ -166,14 +212,14 @@ export function BridgeCard({ className }: { className?: string }) {
 
         <div className="text-sm text-muted-foreground mb-3">You will receive</div>
         <div className="flex items-center gap-4 rounded-xl border border-white/10 bg-secondary/10 px-4 py-4">
-          <div className="text-4xl leading-none font-medium">
-            {fromAmount ? (parseFloat(fromAmount) * 0.998).toFixed(6) : "0.0"}
+          <div className="flex-1 text-4xl leading-none font-medium">
+            {fromAmount ? (Number.parseFloat(fromAmount) * 0.998).toFixed(6) : "0.0"}
           </div>
           <div className="flex flex-col gap-2">
-            <div className="w-[120px] px-3 py-2 bg-secondary/30 border border-secondary rounded-lg text-sm">
+            <div className="w-[120px] px-3 py-2 bg-secondary/30 border border-secondary rounded-lg text-sm text-center">
               {isOnRootstock ? "wRBTC" : "tRBTC"}
             </div>
-            <div className="w-[120px] px-3 py-2 bg-secondary/30 border border-secondary rounded-lg text-sm">
+            <div className="w-[120px] px-3 py-2 bg-secondary/30 border border-secondary rounded-lg text-sm text-center">
               {targetNetwork}
             </div>
           </div>
@@ -187,33 +233,39 @@ export function BridgeCard({ className }: { className?: string }) {
             </div>
             <div className="flex justify-between mt-1">
               <span className="text-muted-foreground">Estimated Time</span>
-              <span>{isOnRootstock ? "2-5 minutes" : "Not Available"}</span>
+              <span>{isOnRootstock ? "1 minutes" : "Not Available"}</span>
             </div>
           </div>
         )}
 
         {isOnSepolia && (
-          <div className="mt-4 p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm">
-            <p className="text-blue-800">
-              <strong>Note:</strong> Bridge from Sepolia to Rootstock requires relayer processing.
-              Currently, only Rootstock → Sepolia bridging is available.
+          <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm">
+            <p className="text-foreground">
+              <strong>Note:</strong> Bridge from Sepolia to Rootstock requires relayer processing. Currently, only
+              Rootstock → Sepolia bridging is available.
             </p>
           </div>
         )}
 
         {isOnRootstock && (
-          <div className="mt-4 p-3 rounded-lg bg-green-50 border border-green-200 text-sm">
-            <p className="text-green-800">
-              <strong>✨ Automatic Minting:</strong> When you bridge tRBTC, wRBTC tokens will be automatically
-              minted on Sepolia for the same address within a few seconds.
+          <div className="mt-4 p-3 rounded-lg bg-secondary/10 border border-border text-sm">
+            <p className="text-foreground">
+              <strong>✨ Relayer Processing:</strong> When you bridge tRBTC, our relayer will process the transaction and deliver wRBTC tokens on
+              Sepolia to the same address within a few seconds.
             </p>
           </div>
         )}
 
         <Button
           onClick={handleBridge}
-          disabled={!fromAmount || isLoading || parseFloat(fromAmount) <= 0 || parseFloat(fromAmount) > parseFloat(availableBalance) || isOnSepolia}
-          className="mt-6 w-full h-12 text-lg font-medium bg-red-500 hover:bg-red-600 text-white rounded-4xl disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={
+            !fromAmount ||
+            isLoading ||
+            Number.parseFloat(fromAmount) <= 0 ||
+            Number.parseFloat(fromAmount) > Number.parseFloat(availableBalance) ||
+            isOnSepolia
+          }
+          className="mt-6 w-full h-12 text-lg font-medium bg-red-500 hover:bg-red-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <div className="flex items-center gap-2">
@@ -221,41 +273,66 @@ export function BridgeCard({ className }: { className?: string }) {
               Bridging...
             </div>
           ) : isOnRootstock ? (
-            `Bridge ${fromAmount || '0'} ${tokenSymbol} to ${targetNetwork}`
+            `Bridge ${fromAmount || "0"} ${tokenSymbol} to ${targetNetwork}`
           ) : (
-            'Bridge Not Available (Relayer Only)'
+            "Bridge Not Available (Relayer Only)"
           )}
         </Button>
 
         {error && (
-          <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm">
-            <p className="text-red-800">
+          <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm">
+            <p className="text-destructive">
               <strong>Error:</strong> {error.message}
             </p>
           </div>
         )}
 
-        {isConfirmed && mintTxHash && (
-          <div className="mt-4 p-3 rounded-lg bg-green-50 border border-green-200 text-sm">
-            <p className="text-green-800">
-              <strong>✅ Bridge Successful!</strong> wRBTC tokens have been automatically minted.
+        {isConfirmed && !autoMintLoading && !autoMintError && (
+          <div className="mt-4 p-3 rounded-lg bg-secondary/10 border border-border text-sm">
+            <p className="text-foreground">
+              <strong>Bridge Successful!</strong> tRBTC bridged successfully. Relayer processing will start shortly...
+            </p>
+          </div>
+        )}
+
+        {/* Relayer Processing Status */}
+        {autoMintLoading && (
+          <div className="mt-4 p-3 rounded-lg bg-secondary/10 border border-border text-sm">
+            <p className="text-foreground">
+              <strong>🔄 Relayer Processing...</strong> Processing bridge transaction on Sepolia...
+            </p>
+          </div>
+        )}
+
+        {autoMintError && (
+          <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm">
+            <p className="text-destructive">
+              <strong>Relayer Error:</strong> {autoMintError}
+            </p>
+          </div>
+        )}
+
+        {autoMintTxHash && (
+          <div className="mt-4 p-3 rounded-lg bg-secondary/10 border border-border text-sm">
+            <p className="text-foreground">
+              <strong>✅ Bridge Complete!</strong> wRBTC tokens have been delivered via relayer.
             </p>
             <div className="mt-2">
               <a
-                href={`https://sepolia.etherscan.io/tx/${mintTxHash}`}
+                href={`https://sepolia.etherscan.io/tx/${autoMintTxHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-green-600 hover:text-green-800 text-xs underline flex items-center gap-1"
+                className="text-foreground/80 hover:text-foreground text-xs underline flex items-center gap-1"
               >
-                View Mint Transaction <ExternalLink className="size-3" />
+                View Relayer Transaction <ExternalLink className="size-3" />
               </a>
             </div>
           </div>
         )}
 
         {txHash && (
-          <div className="mt-4 p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm">
-            <p className="text-blue-800">
+          <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm">
+            <p className="text-foreground">
               <strong>Bridge Transaction Hash:</strong>
             </p>
             <code className="break-all text-xs">{txHash}</code>
@@ -264,7 +341,7 @@ export function BridgeCard({ className }: { className?: string }) {
                 href={`https://explorer.testnet.rsk.co/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 text-xs underline flex items-center gap-1"
+                className="text-foreground/80 hover:text-foreground text-xs underline flex items-center gap-1"
               >
                 View Bridge Transaction <ExternalLink className="size-3" />
               </a>
@@ -275,4 +352,3 @@ export function BridgeCard({ className }: { className?: string }) {
     </Card>
   )
 }
-
