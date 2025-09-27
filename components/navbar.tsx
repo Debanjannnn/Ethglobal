@@ -28,6 +28,9 @@ export function Navbar({ className }: { className?: string }) {
           <Link href="/swap" className="hover:text-foreground transition-colors">
             Swap
           </Link>
+          <Link href="/bridge" className="hover:text-foreground transition-colors">
+            Bridge
+          </Link>
         </nav>
 
         <div className="ml-auto hidden md:flex items-center gap-3">
