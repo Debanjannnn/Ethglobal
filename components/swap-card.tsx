@@ -127,7 +127,7 @@ export function SwapCard({ className }: { className?: string }) {
         <Button
           onClick={handleSwap}
           disabled={!sellToken || !buyToken || !sellAmount || isLoading}
-          className="mt-6 w-full h-12 text-lg font-medium bg-red-500 hover:bg-red-600 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-6 w-full h-12 text-lg font-medium bg-red-500 hover:bg-red-600 text-white rounded-4xl disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? "Calculating..." : "Swap"}
         </Button>
