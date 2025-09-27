@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Wait for transaction confirmation
+    // @ts-ignore
     await walletClient.waitForTransactionReceipt({ hash });
 
     return NextResponse.json({

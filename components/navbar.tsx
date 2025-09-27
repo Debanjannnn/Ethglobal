@@ -45,7 +45,7 @@ export function Navbar({ className }: { className?: string }) {
         </div>
 
         <div className="md:hidden ml-auto">
-          <Button variant="outline" className="border-secondary bg-transparent rounded-4xl text-base">
+          <Button variant="outline" size="sm" className="border-secondary bg-transparent rounded-4xl text-base h-8 px-4">
             Menu
           </Button>
         </div>

@@ -120,3 +120,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom RainbowKit button styling */
+[data-rk] button {
+  border-radius: 2rem !important; /* rounded-4xl equivalent */
+}

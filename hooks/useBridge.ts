@@ -110,7 +110,7 @@ export function useBridge() {
     if (isOnRootstock) {
       return nativeBalance ? formatEther(nativeBalance.value) : "0";
     } else if (isOnSepolia) {
-      return wRBTCBalance ? formatEther(wRBTCBalance) : "0";
+      return wRBTCBalance ? formatEther(wRBTCBalance as bigint) : "0";
     }
     return "0";
   };
