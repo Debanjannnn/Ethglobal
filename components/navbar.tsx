@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { WalletConnect } from "@/components/wallet-connect"
 
 export function Navbar({ className }: { className?: string }) {
   return (
@@ -40,9 +41,7 @@ export function Navbar({ className }: { className?: string }) {
               className="w-80 bg-secondary/60 border-secondary text-foreground rounded-4xl text-base"
             />
           </div>
-          <Button className="font-medium bg-red-500 hover:bg-red-600 text-white rounded-4xl text-base">
-            Connect
-          </Button>
+          <WalletConnect />
         </div>
 
         <div className="md:hidden ml-auto">
