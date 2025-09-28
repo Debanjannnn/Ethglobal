@@ -45,7 +45,7 @@ export default function TokensTable() {
         setIsLoading(true)
         setError(null)
         
-        const response = await fetch("/api/pyth/tokens", {
+        const response = await fetch("/api/coindc/tokens", {
           method: "GET",
           headers: {
             "Accept": "application/json",
@@ -194,7 +194,7 @@ export default function TokensTable() {
             </Table>
           </div>
           <p className="text-xs text-muted-foreground">
-            Data from Pyth Network (BTC, ETH, SOL) and additional sources. Prices quoted in USD. Refreshes every 30s.
+            Data from CoinDCX public API. Prices quoted in USDT markets. Refreshes every 30s.
           </p>
         </div>
       </section>

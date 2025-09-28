@@ -1,0 +1,136 @@
+"use client"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+import { WalletConnect } from "@/components/wallet-connect"
+import { useState } from "react"
+import { Menu, X, Search, Zap } from "lucide-react"
+
+export function Navbar({ className }: { className?: string }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  return (
+    <header className={cn("w-full sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10", className)}>
+      <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
+        {/* Logo Section */}
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-sm opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative bg-gradient-to-r from-blue-500 to-purple-600 rounded-full p-1">
+              <img src="/logo.png" alt="logo" className="w-8 h-8 rounded-full" />
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-white font-bold text-xl tracking-tight group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-purple-400 transition-all duration-300">
+              Pocket Protocol
+            </span>
+            <span className="text-xs text-muted-foreground -mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              Cross-chain DeFi
+            </span>
+          </div>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden lg:flex items-center gap-1">
+          {[
+            { href: "/explore", label: "Explore", icon: "🔍" },
+            { href: "/pool", label: "Pool", icon: "🏊" },
+            { href: "/swap", label: "Swap", icon: "🔄" },
+            { href: "/bridge", label: "Bridge", icon: "🌉" },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="relative px-4 py-2 rounded-xl text-muted-foreground hover:text-white transition-all duration-300 group"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                <span className="text-sm">{item.icon}</span>
+                <span className="font-medium">{item.label}</span>
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute inset-0 border border-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </Link>
+          ))}
+        </nav>
+
+        {/* Search and Wallet Section */}
+        <div className="hidden lg:flex items-center gap-4">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-hover:text-white transition-colors duration-300" />
+            <Input
+              placeholder="Search tokens, pools, and more..."
+              className="w-80 pl-10 pr-4 py-2 bg-white/5 border-white/20 text-white placeholder:text-muted-foreground rounded-2xl backdrop-blur-sm hover:bg-white/10 hover:border-white/30 focus:bg-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+          </div>
+          
+          <div className="relative">
+            <WalletConnect />
+          </div>
+        </div>
+
+        {/* Mobile Menu Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden relative p-2 rounded-xl bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/30 transition-all duration-300"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? (
+            <X className="w-5 h-5 text-white" />
+          ) : (
+            <Menu className="w-5 h-5 text-white" />
+          )}
+        </Button>
+      </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden absolute top-full left-0 right-0 bg-black/95 backdrop-blur-xl border-b border-white/10 shadow-2xl">
+          <div className="px-4 py-6 space-y-4">
+            {/* Mobile Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search tokens, pools..."
+                className="w-full pl-10 pr-4 py-3 bg-white/5 border-white/20 text-white placeholder:text-muted-foreground rounded-2xl backdrop-blur-sm"
+              />
+            </div>
+
+            {/* Mobile Navigation */}
+            <nav className="space-y-2">
+              {[
+                { href: "/explore", label: "Explore", icon: "🔍", desc: "Discover new opportunities" },
+                { href: "/pool", label: "Pool", icon: "🏊", desc: "Provide liquidity" },
+                { href: "/swap", label: "Swap", icon: "🔄", desc: "Trade tokens instantly" },
+                { href: "/bridge", label: "Bridge", icon: "🌉", desc: "Cross-chain transfers" },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/30 transition-all duration-300 group"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <span className="text-2xl">{item.icon}</span>
+                  <div className="flex-1">
+                    <div className="font-medium text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-purple-400 transition-all duration-300">
+                      {item.label}
+                    </div>
+                    <div className="text-sm text-muted-foreground">{item.desc}</div>
+                  </div>
+                  <Zap className="w-4 h-4 text-muted-foreground group-hover:text-white transition-colors duration-300" />
+                </Link>
+              ))}
+            </nav>
+
+            {/* Mobile Wallet */}
+            <div className="pt-4 border-t border-white/10">
+              <WalletConnect />
+            </div>
+          </div>
+        </div>
+      )}
+    </header>
+  )
+}
