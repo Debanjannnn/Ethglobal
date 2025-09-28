@@ -29,6 +29,9 @@ export function Navbar({ className }: { className?: string }) {
           <Link href="/swap" className="hover:text-foreground transition-colors">
             Swap
           </Link>
+          <Link href="/stake" className="hover:text-foreground transition-colors">
+            Stake
+          </Link>
           <Link href="/bridge" className="hover:text-foreground transition-colors">
             Bridge
           </Link>

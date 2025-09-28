@@ -129,6 +129,8 @@ export function SwapCard({ className }: { className?: string }) {
           recipient: address
         })
         
+        console.log('Swap result:', result);
+        
         if (result) {
           setSwapResult(result)
         }

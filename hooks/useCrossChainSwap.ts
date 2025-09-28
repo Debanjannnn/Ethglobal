@@ -59,7 +59,7 @@ export function useCrossChainSwap() {
       // For Rootstack to Sepolia swap
       if (fromChainId === 31 && toChainId === 11155111) {
         // Step 1: Send tRBTC from user's wallet to relayer
-        writeContract({
+        const txHash = await writeContract({
           address: ROOT_STACK_POOL as `0x${string}`,
           abi: ROOTSTACK_POOL_ABI,
           functionName: 'deposit',
@@ -67,42 +67,36 @@ export function useCrossChainSwap() {
           value: parseEther(fromAmount),
         });
 
-        // Return a promise that resolves when the transaction is confirmed
-        return new Promise<{rootstackTx: string, sepoliaTx: string}>((resolve, reject) => {
-          // Wait for transaction to be submitted
-          const checkHash = setInterval(() => {
-            if (hash) {
-              clearInterval(checkHash);
-              
-              // Step 2: Call relayer API to send ETH to recipient
-              fetch('/api/relayer', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  recipient,
-                  amount: fromAmount,
-                }),
-              })
-              .then(response => response.json())
-              .then(relayerResult => {
-                if (!relayerResult.success) {
-                  throw new Error(`Relayer failed: ${relayerResult.error}`);
-                }
-                console.log('Relayer response:', relayerResult);
-                resolve({ rootstackTx: hash, sepoliaTx: relayerResult.txHash });
-              })
-              .catch(reject);
-            }
-          }, 100);
+        console.log('Rootstock transaction submitted:', txHash);
 
-          // Timeout after 30 seconds
-          setTimeout(() => {
-            clearInterval(checkHash);
-            reject(new Error('Transaction timeout'));
-          }, 30000);
+        // Wait a bit for the transaction to be processed
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Step 2: Call relayer API to send ETH to recipient
+        const relayerResponse = await fetch('/api/relayer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipient,
+            amount: fromAmount,
+            transferId: txHash, // Use transaction hash as transferId
+            action: 'swap'
+          }),
         });
+
+        const relayerResult = await relayerResponse.json();
+        
+        if (!relayerResult.success) {
+          throw new Error(`Relayer failed: ${relayerResult.error}`);
+        }
+        
+        console.log('Relayer response:', relayerResult);
+        return { 
+          rootstackTx: txHash, 
+          sepoliaTx: relayerResult.txHash || relayerResult.mintTxHash 
+        };
       } else {
         throw new Error('Unsupported chain pair');
       }
@@ -110,7 +104,7 @@ export function useCrossChainSwap() {
       console.error('Swap execution failed:', err);
       throw err;
     }
-  }, [address, writeContract, hash]);
+  }, [address, writeContract]);
 
   const releaseFunds = useCallback(async (
     transferId: string,

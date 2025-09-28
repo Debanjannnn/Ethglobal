@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { useMemo, useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
 import { BokehBackground } from "@/components/ui/bokeh-background"
+import { StakeCard } from "@/components/stake-card"
 
 type TokenRow = {
   rank: number
@@ -119,16 +120,30 @@ export default function TokensTable() {
       <BokehBackground />
 
       <section className="mx-auto max-w-6xl px-4 pt-20 pb-16 md:pt-28">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-xl md:text-2xl font-medium text-pretty">Tokens</h2>
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search tokens and markets"
-              className="max-w-xs"
-            />
+        <div className="flex flex-col gap-8">
+          {/* Staking Section */}
+          <div className="flex flex-col gap-4">
+            <h2 className="text-xl md:text-2xl font-medium text-pretty">Cross-Chain Staking</h2>
+            <div className="flex justify-center">
+              <StakeCard />
+            </div>
+            <p className="text-sm text-muted-foreground text-center max-w-2xl mx-auto">
+              Stake your native tokens on any chain and earn RIFF rewards on Rootstock. 
+              No bridging required - the relayer handles cross-chain complexity automatically.
+            </p>
           </div>
+
+          {/* Tokens Section */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-xl md:text-2xl font-medium text-pretty">Token Prices</h2>
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search tokens and markets"
+                className="max-w-xs"
+              />
+            </div>
 
           <div className="rounded-lg border bg-card">
             <Table>
@@ -193,9 +208,10 @@ export default function TokensTable() {
               </TableBody>
             </Table>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Data from Pyth Network (BTC, ETH, SOL) and additional sources. Prices quoted in USD. Refreshes every 30s.
-          </p>
+            <p className="text-xs text-muted-foreground">
+              Data from Pyth Network (BTC, ETH, SOL) and additional sources. Prices quoted in USD. Refreshes every 30s.
+            </p>
+          </div>
         </div>
       </section>
     </main>
